@@ -5,8 +5,16 @@ import 'dart:typed_data';
 import 'package:cliptopia_daemon/core/json_configurator.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
 import 'package:cliptopia_daemon/core/utils.dart';
+import 'package:cliptopia_daemon/daemon.dart';
 
 class ClipboardCache {
+  static final imageCacheDir = Directory(combineHomePath([
+    '.config',
+    'cliptopia',
+    'cache',
+    'images',
+  ]));
+
   static final configurator = ClipboardConfigurator();
 
   static dynamic _recentTextData;
@@ -14,7 +22,7 @@ class ClipboardCache {
 
   static void init() {
     final objects = configurator.get('cache');
-    if (objects != null) {
+    if (objects != null && objects.isNotEmpty) {
       final mostRecent = objects.last;
       if (mostRecent['type'] == 'ClipboardEntityType.image') {
         _recentImageData = File(mostRecent['data']).readAsBytesSync();
@@ -83,9 +91,94 @@ class ClipboardCache {
         ClipboardEntity(object.path, DateTime.now(), ClipboardEntityType.image)
             .toMap());
   }
+
+  static void optimizeCache() {
+    if (DaemonConfig.shouldLimitCache()) {
+      int size = DaemonConfig.getCacheSize();
+      String unit = DaemonConfig.getCacheSizeUnit();
+      int base = _getBase(unit);
+      int limitInBytes = size * base;
+      int currentSize = _getCacheDirSizeInBytes();
+      prettyLog(value: "Cache Size: ${currentSize / base} $unit");
+      if (currentSize > limitInBytes) {
+        prettyLog(
+          value:
+              "Cache has exceeded the limit of $size $unit !!!\nDaemon will now try to delete old entries ...",
+          type: DebugType.warning,
+        );
+        deleteUntil(currentSize - limitInBytes);
+      }
+    }
+  }
+
+  static void deleteUntil(final int exceededSize) {
+    int deletedCacheSize = 0;
+    int index = 0;
+    dynamic objects = configurator.get('cache');
+    while (deletedCacheSize <= exceededSize && index < objects.length) {
+      dynamic object = objects[index++];
+      int objectSize = utf8.encode(jsonEncode(object)).length;
+      int extra = 0;
+      if (object['type'] == 'ClipboardEntityType.image') {
+        dynamic path = object['data'];
+        File imageFile = File(path);
+        if (imageFile.existsSync()) {
+          extra = imageFile.statSync().size;
+          imageFile.deleteSync();
+          prettyLog(value: ">> Deleting Cached Image ...");
+        }
+      }
+      deletedCacheSize += (objectSize - extra);
+      configurator.remove('cache', object);
+    }
+    prettyLog(value: "Cleared $exceededSize bytes of storage ...");
+  }
+
+  static int _getBase(String unit) {
+    int base = 1000;
+    switch (unit) {
+      case "MB":
+        base = 1000000;
+        break;
+      case "GB":
+        base = 1000000000;
+    }
+    return base;
+  }
+
+  static int _getCacheDirSizeInBytes() {
+    var files = Daemon.cacheDir.listSync(recursive: true).toList();
+    var dirSize = files.fold(0, (int sum, file) => sum + file.statSync().size);
+    return dirSize;
+  }
+}
+
+class DaemonConfig extends JsonConfigurator {
+  DaemonConfig._() : super(configName: "daemon-config.json");
+
+  static late DaemonConfig _config;
+
+  static void init() {
+    _config = DaemonConfig._();
+  }
+
+  static bool shouldLimitCache() {
+    _config.reload();
+    return _config.get('limit-cache') ?? false;
+  }
+
+  static int getCacheSize() {
+    return _config.get('cache-size') ?? "10";
+  }
+
+  static String getCacheSizeUnit() {
+    return _config.get('unit') ?? "KB";
+  }
 }
 
 class ClipboardManager {
+  late DaemonConfig config;
+
   ClipboardManager.withStorage() {
     init();
   }
@@ -97,6 +190,7 @@ class ClipboardManager {
         "Creating Cliptopia Cache Storage ...");
     mkdir(combineHomePath(['.config', 'cliptopia', 'cache', 'images']),
         "Creating Cliptopia Image Cache Storage ...");
+    DaemonConfig.init();
     ClipboardCache.init();
   }
 
@@ -166,7 +260,28 @@ class ClipboardConfigurator extends JsonConfigurator {
               "clipboard.json",
             ],
           ),
-        );
+        ) {
+    dynamic objects = get('cache');
+    if (objects != null) {
+      dynamic removables = [];
+      for (final object in objects) {
+        if (object['type'] != 'ClipboardEntityType.text') {
+          if (!File(object['data']).existsSync()) {
+            removables.add(object);
+          }
+        }
+      }
+      for (final object in removables) {
+        remove('cache', object);
+      }
+    }
+  }
+
+  @override
+  void add(key, value) {
+    super.add(key, value);
+    ClipboardCache.optimizeCache();
+  }
 
   bool containsPath(String path) {
     dynamic objects = get('cache');
