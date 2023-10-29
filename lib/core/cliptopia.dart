@@ -106,12 +106,12 @@ class ClipboardCache {
               "Cache has exceeded the limit of $size $unit !!!\nDaemon will now try to delete old entries ...",
           type: DebugType.warning,
         );
-        deleteUntil(currentSize - limitInBytes);
+        clearCache(currentSize - limitInBytes);
       }
     }
   }
 
-  static void deleteUntil(final int exceededSize) {
+  static void clearCache(final int exceededSize) {
     int deletedCacheSize = 0;
     int index = 0;
     dynamic objects = configurator.get('cache');
