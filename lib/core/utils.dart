@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -31,7 +30,7 @@ bool containsIgnoreCase(String mainString, String subString) {
   return mainLower.contains(subLower);
 }
 
-String _pgrep(pattern){
+String _pgrep(pattern) {
   return Process.runSync('pgrep', ['-x', pattern]).stdout;
 }
 
@@ -39,12 +38,16 @@ bool isDaemonAlive() {
   final daemonProcess = _pgrep('cliptopia-daemon');
   final devProcess = _pgrep('dart:cliptopia_');
   final prodProcess = _pgrep('dart:cliptopia-');
-  return daemonProcess.isNotEmpty || devProcess.isNotEmpty || prodProcess.isNotEmpty;
+  return daemonProcess.isNotEmpty ||
+      devProcess.isNotEmpty ||
+      prodProcess.isNotEmpty;
 }
 
 String getUniqueImagePath() {
-  return combineHomePath(['.config', 'cliptopia', 'cache', 'images', '${_uuid.v1()}.png']);
+  return combineHomePath(
+      ['.config', 'cliptopia', 'cache', 'images', '${_uuid.v1()}.png']);
 }
+
 /// Naive [List] equality implementation.
 bool listEquals<E>(List<E> list1, List<E> list2) {
   if (identical(list1, list2)) {

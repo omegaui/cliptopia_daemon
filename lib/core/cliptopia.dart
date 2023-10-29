@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:cliptopia_daemon/core/json_configurator.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
 import 'package:cliptopia_daemon/core/utils.dart';
-import 'package:cliptopia_daemon/daemon.dart';
 
 class ClipboardCache {
   static final configurator = ClipboardConfigurator();
@@ -40,7 +39,22 @@ class ClipboardCache {
 
     if (FileSystemEntity.isDirectorySync(path) ||
         FileSystemEntity.isFileSync(path)) {
+      if (configurator.containsPath(path)) {
+        return;
+      }
       type = ClipboardEntityType.path;
+    } else if (path.contains('\n')) {
+      List<String> lines = path.split('\n');
+      List<String> paths = lines.where((line) {
+        return FileSystemEntity.isDirectorySync(line) ||
+            FileSystemEntity.isFileSync(line);
+      }).toList();
+      if (paths.length == lines.length) {
+        for (final path in lines) {
+          addText(path);
+        }
+        return;
+      }
     }
 
     prettyLog(
@@ -153,6 +167,23 @@ class ClipboardConfigurator extends JsonConfigurator {
             ],
           ),
         );
+
+  bool containsPath(String path) {
+    dynamic objects = get('cache');
+    if (objects == null) {
+      return false;
+    }
+    final now = DateTime.now();
+    for (final entity in objects) {
+      if (entity['data'] == path) {
+        if (!DateTime.parse(entity['time']).isAtSameMomentAs(now)) {
+          entity['time'] = now.toString();
+        }
+        return true;
+      }
+    }
+    return false;
+  }
 }
 
 class ClipboardEntity {
