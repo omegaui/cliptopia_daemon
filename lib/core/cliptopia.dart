@@ -7,6 +7,8 @@ import 'package:cliptopia_daemon/core/logger.dart';
 import 'package:cliptopia_daemon/core/utils.dart';
 import 'package:cliptopia_daemon/daemon.dart';
 
+final _now = DateTime.now();
+
 class ClipboardCache {
   static final imageCacheDir = Directory(combineHomePath([
     '.config',
@@ -26,8 +28,11 @@ class ClipboardCache {
       for (final textObject in texts) {
         final textData = textObject['data'];
         if (textData == data) {
-          textObject['time'] = DateTime.now().toString();
-          configurator.save();
+          final currentTime = DateTime.parse(textObject['time']);
+          if (!currentTime.isAtSameMomentAs(_now)) {
+            textObject['time'] = _now.toString();
+            configurator.save();
+          }
           return true;
         }
       }
@@ -85,8 +90,11 @@ class ClipboardCache {
           if (imageFile.existsSync()) {
             final imageData = imageFile.readAsBytesSync();
             if (listEquals(imageData, object.data)) {
-              imageObject['time'] = DateTime.now().toString();
-              configurator.save();
+              final currentTime = DateTime.parse(imageObject['time']);
+              if (!currentTime.isAtSameMomentAs(_now)) {
+                imageObject['time'] = _now.toString();
+                configurator.save();
+              }
               return true;
             }
           }
