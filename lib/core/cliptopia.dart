@@ -17,26 +17,28 @@ class ClipboardCache {
 
   static final configurator = ClipboardConfigurator();
 
-  static dynamic _recentTextData;
-  static Uint8List? _recentImageData;
-
-  static void init() {
-    final objects = configurator.get('cache');
+  static bool findTextInCache(data) {
+    dynamic objects = configurator.get('cache');
     if (objects != null && objects.isNotEmpty) {
-      final mostRecent = objects.last;
-      if (mostRecent['type'] == 'ClipboardEntityType.image') {
-        _recentImageData = File(mostRecent['data']).readAsBytesSync();
-      } else {
-        _recentTextData = mostRecent['data'];
+      dynamic texts = objects
+          .where((e) => e['type'] != 'ClipboardEntityType.image')
+          .toList();
+      for (final textObject in texts) {
+        final textData = textObject['data'];
+        if (textData == data) {
+          textObject['time'] = DateTime.now().toString();
+          configurator.save();
+          return true;
+        }
       }
     }
+    return false;
   }
 
   static void addText(dynamic data) {
-    if (_recentTextData == data) {
+    if (findTextInCache(data)) {
       return;
     }
-    _recentTextData = data;
 
     var type = ClipboardEntityType.text;
 
@@ -47,9 +49,6 @@ class ClipboardCache {
 
     if (FileSystemEntity.isDirectorySync(path) ||
         FileSystemEntity.isFileSync(path)) {
-      if (configurator.containsPath(path)) {
-        return;
-      }
       type = ClipboardEntityType.path;
     } else if (path.contains('\n')) {
       List<String> lines = path.split('\n');
@@ -73,14 +72,34 @@ class ClipboardCache {
         'cache', ClipboardEntity(data, DateTime.now(), type).toMap());
   }
 
-  static void addImage(ClipboardImageObject object) {
-    if (_recentImageData != null) {
-      if (listEquals(_recentImageData!, object.data)) {
-        return;
+  static bool findImageInCache(ClipboardImageObject object) {
+    dynamic objects = configurator.get('cache');
+    if (objects != null && objects.isNotEmpty) {
+      dynamic images = objects
+          .where((e) => e['type'] == 'ClipboardEntityType.image')
+          .toList();
+      if (images.isNotEmpty) {
+        for (final imageObject in images) {
+          final path = imageObject['data'];
+          final imageFile = File(path);
+          if (imageFile.existsSync()) {
+            final imageData = imageFile.readAsBytesSync();
+            if (listEquals(imageData, object.data)) {
+              imageObject['time'] = DateTime.now().toString();
+              configurator.save();
+              return true;
+            }
+          }
+        }
       }
     }
+    return false;
+  }
 
-    _recentImageData = object.data;
+  static void addImage(ClipboardImageObject object) {
+    if (findImageInCache(object)) {
+      return;
+    }
 
     File(object.path).writeAsBytesSync(object.data, flush: true);
 
@@ -191,7 +210,6 @@ class ClipboardManager {
     mkdir(combineHomePath(['.config', 'cliptopia', 'cache', 'images']),
         "Creating Cliptopia Image Cache Storage ...");
     DaemonConfig.init();
-    ClipboardCache.init();
   }
 
   void read() {
@@ -281,23 +299,6 @@ class ClipboardConfigurator extends JsonConfigurator {
   void add(key, value) {
     super.add(key, value);
     ClipboardCache.optimizeCache();
-  }
-
-  bool containsPath(String path) {
-    dynamic objects = get('cache');
-    if (objects == null) {
-      return false;
-    }
-    final now = DateTime.now();
-    for (final entity in objects) {
-      if (entity['data'] == path) {
-        if (!DateTime.parse(entity['time']).isAtSameMomentAs(now)) {
-          entity['time'] = now.toString();
-        }
-        return true;
-      }
-    }
-    return false;
   }
 }
 
