@@ -99,4 +99,8 @@ class JsonConfigurator {
       stdout.writeln(stackTrace);
     }
   }
+
+  void delete() {
+    File(configPath).deleteSync();
+  }
 }

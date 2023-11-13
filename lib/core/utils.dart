@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
 
-final _uuid = Uuid();
+final uuid = Uuid();
 
 String combinePath(List<String> locations, {bool absolute = false}) {
   String path = locations.join(Platform.pathSeparator);
@@ -45,7 +45,7 @@ bool isDaemonAlive() {
 
 String getUniqueImagePath() {
   return combineHomePath(
-      ['.config', 'cliptopia', 'cache', 'images', '${_uuid.v1()}.png']);
+      ['.config', 'cliptopia', 'cache', 'images', '${uuid.v1()}.png']);
 }
 
 /// Naive [List] equality implementation.

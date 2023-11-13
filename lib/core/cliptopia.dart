@@ -288,6 +288,18 @@ class ClipboardConfigurator extends JsonConfigurator {
           ),
         ) {
     dynamic objects = get('cache');
+
+    final removablesStorage = JsonConfigurator(
+      configName: combinePath(
+        [
+          'cache',
+          'user-removables.json',
+        ],
+      ),
+    );
+
+    dynamic removableObjects = removablesStorage.get('removables') ?? [];
+
     if (objects != null) {
       dynamic removables = [];
       for (final object in objects) {
@@ -296,11 +308,16 @@ class ClipboardConfigurator extends JsonConfigurator {
             removables.add(object);
           }
         }
+        if (removableObjects.contains(object['id'])) {
+          removables.add(object);
+        }
       }
       for (final object in removables) {
         remove('cache', object);
       }
     }
+
+    removablesStorage.delete();
   }
 
   @override
@@ -314,11 +331,13 @@ class ClipboardEntity {
   dynamic data;
   DateTime time;
   ClipboardEntityType type;
+  final String id;
 
-  ClipboardEntity(this.data, this.time, this.type);
+  ClipboardEntity(this.data, this.time, this.type) : id = uuid.v1();
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'data': data,
       'time': time.toString(),
       'type': type.toString(),
