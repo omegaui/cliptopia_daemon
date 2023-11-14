@@ -223,6 +223,8 @@ class ClipboardManager {
   void read() {
     _tryReadText();
     _tryReadImage();
+    // removes corrupted or removable objects
+    ClipboardCache.configurator.optimize();
   }
 
   void _tryReadText() {
@@ -278,6 +280,15 @@ class ClipboardManager {
 }
 
 class ClipboardConfigurator extends JsonConfigurator {
+  final removablesStorage = JsonConfigurator(
+    configName: combinePath(
+      [
+        'cache',
+        'user-removables.json',
+      ],
+    ),
+  );
+
   ClipboardConfigurator()
       : super(
           configName: combinePath(
@@ -286,17 +297,12 @@ class ClipboardConfigurator extends JsonConfigurator {
               "clipboard.json",
             ],
           ),
-        ) {
+        );
+
+  void optimize() {
     dynamic objects = get('cache');
 
-    final removablesStorage = JsonConfigurator(
-      configName: combinePath(
-        [
-          'cache',
-          'user-removables.json',
-        ],
-      ),
-    );
+    removablesStorage.reload();
 
     dynamic removableObjects = removablesStorage.get('removables') ?? [];
 
@@ -309,15 +315,15 @@ class ClipboardConfigurator extends JsonConfigurator {
           }
         }
         if (removableObjects.contains(object['id'])) {
+          prettyLog(value: "Marking Entity for Removal :${object['id']}");
           removables.add(object);
         }
       }
       for (final object in removables) {
         remove('cache', object);
+        removablesStorage.remove('cache', object['id']);
       }
     }
-
-    removablesStorage.delete();
   }
 
   @override
