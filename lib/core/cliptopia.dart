@@ -194,6 +194,10 @@ class DaemonConfig extends JsonConfigurator {
     return _config.get('limit-cache') ?? false;
   }
 
+  static bool shouldKeepHistory() {
+    return _config.get('keep-history') ?? true;
+  }
+
   static int getCacheSize() {
     return _config.get('cache-size') ?? "10";
   }
@@ -207,10 +211,10 @@ class ClipboardManager {
   late DaemonConfig config;
 
   ClipboardManager.withStorage() {
-    init();
+    initStorage();
   }
 
-  void init() {
+  static void initStorage() {
     mkdir(combineHomePath(['.config', 'cliptopia']),
         "Creating Cliptopia Storage Route ...");
     mkdir(combineHomePath(['.config', 'cliptopia', 'cache']),
@@ -223,7 +227,8 @@ class ClipboardManager {
   void read() {
     _tryReadText();
     _tryReadImage();
-    // removes corrupted or removable objects
+    // removes corrupted or objects marked for removal
+    // by Cliptopia's Clipboard Manager
     ClipboardCache.configurator.optimize();
   }
 

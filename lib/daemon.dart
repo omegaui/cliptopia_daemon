@@ -25,12 +25,25 @@ class Daemon {
       return;
     }
     Lock.apply();
+    manager = ClipboardManager.withStorage();
+    if (!DaemonConfig.shouldKeepHistory()) {
+      // Checking if cliptopia-startup-lock-exists
+      // if the lock exists, this means the history of this session
+      // has already been cleared else we reset the cache and create the lock
+      prettyLog(
+          value: "\"HISTORY WILL NOT BE AVAILABLE AFTER A RESTART\"",
+          type: DebugType.warning);
+      if (!StartupLock.isLocked()) {
+        resetCache(stop: false);
+        ClipboardManager.initStorage();
+        StartupLock.apply();
+      }
+    }
     _launch();
   }
 
   void _launch() async {
     prettyLog(value: 'Daemon Started ...');
-    manager = ClipboardManager.withStorage();
     while (Lock.isLocked()) {
       await Future.delayed(Duration(seconds: 1));
       manager.read();
@@ -62,9 +75,11 @@ class Daemon {
     startDaemon();
   }
 
-  void resetCache() async {
+  void resetCache({stop = true}) async {
     if (cacheDir.existsSync()) {
-      await stopDaemon();
+      if (stop) {
+        await stopDaemon();
+      }
       cacheDir.deleteSync(recursive: true);
       stdout.writeln("Cache Cleared!");
       stdout.writeln(
