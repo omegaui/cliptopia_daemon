@@ -185,6 +185,8 @@ class DaemonConfig extends JsonConfigurator {
 
   static late DaemonConfig _config;
 
+  static DaemonConfig get configuration => _config;
+
   static void init() {
     _config = DaemonConfig._();
   }
@@ -208,8 +210,6 @@ class DaemonConfig extends JsonConfigurator {
 }
 
 class ClipboardManager {
-  late DaemonConfig config;
-
   ClipboardManager.withStorage() {
     initStorage();
   }
@@ -284,7 +284,7 @@ class ClipboardManager {
   }
 
   String findMostRecentTextEntry() {
-    final objects = config.get('cache');
+    final objects = ClipboardCache.configurator.get('cache');
     final texts = objects.where((e) => e['type'] == 'ClipboardEntityType.text');
     if (texts.isNotEmpty) {
       return texts.first['data'];
