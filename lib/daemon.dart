@@ -88,11 +88,11 @@ class Daemon {
       stdout.writeln(
           "Cache Location: ${Platform.environment['HOME']}/.config/cliptopia/cache");
       stdout.writeln();
+      stdout.writeln("Please Note that cache should not be cleared manually,");
       stdout.writeln(
-          "Please Note that cache should not be cleared manually, it should only be cleared when you think it has taken a considerable amount of space on your system.");
+          "The Daemon is itself capable of clearing cache automatically");
       stdout.writeln(
-          "Scheduling Cache Deletion from Cliptopia's Clipboard Manager is the recommended way.");
-      stdout.writeln("You can specify duration in days or months.");
+          "Use Cliptopia's Clipboard Manager to set the cache limit in KB, MB or GB as you want.");
     } else {
       stdout.writeln("Nothing in cache to clear.");
     }
