@@ -282,6 +282,15 @@ class ClipboardManager {
       return null;
     }
   }
+
+  String findMostRecentTextEntry() {
+    final objects = config.get('cache');
+    final texts = objects.where((e) => e['type'] == 'ClipboardEntityType.text');
+    if (texts.isNotEmpty) {
+      return texts.first['data'];
+    }
+    return "";
+  }
 }
 
 class ClipboardConfigurator extends JsonConfigurator {

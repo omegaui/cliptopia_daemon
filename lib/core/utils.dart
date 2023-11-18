@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:uuid/uuid.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
+import 'package:uuid/uuid.dart';
 
 final uuid = Uuid();
 
@@ -96,4 +96,15 @@ bool memEquals(Uint8List bytes1, Uint8List bytes2) {
   }
 
   return true;
+}
+
+void copy(data) {
+  final temp = File('/tmp/.cliptopia-temp-text-data');
+  temp.writeAsStringSync(data, flush: true);
+  // copying using xclip
+  Process.start(
+    combineHomePath(['.config', 'cliptopia', 'scripts', 'cliptopia-copy.sh']),
+    [],
+  );
+  prettyLog(value: "Copied to clipboard ... ");
 }

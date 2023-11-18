@@ -41,3 +41,20 @@ class StartupLock {
     return lockFile.existsSync();
   }
 }
+
+class StateLock {
+  StateLock._();
+
+  static File lockFile =
+      File(combinePath([Directory.systemTemp.path, '.cliptopia-state-lock']));
+
+  static void apply() {
+    if (!isLocked()) {
+      lockFile.createSync();
+    }
+  }
+
+  static bool isLocked() {
+    return lockFile.existsSync();
+  }
+}

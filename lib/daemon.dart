@@ -27,17 +27,20 @@ class Daemon {
     Lock.apply();
     manager = ClipboardManager.withStorage();
     if (!DaemonConfig.shouldKeepHistory()) {
-      // Checking if cliptopia-startup-lock-exists
-      // if the lock exists, this means the history of this session
-      // has already been cleared else we reset the cache and create the lock
       prettyLog(
           value: "\"HISTORY WILL NOT BE AVAILABLE AFTER A RESTART\"",
           type: DebugType.warning);
+      // Checking if cliptopia-startup-lock-exists
+      // if the lock exists, this means the history of this session
+      // has already been cleared else we reset the cache and create the lock
       if (!StartupLock.isLocked()) {
         resetCache(stop: false);
         ClipboardManager.initStorage();
         StartupLock.apply();
       }
+    } else if (!StateLock.isLocked()) {
+      copy(manager.findMostRecentTextEntry());
+      StateLock.apply();
     }
     _launch();
   }
