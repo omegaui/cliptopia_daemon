@@ -285,9 +285,12 @@ class ClipboardManager {
 
   String findMostRecentTextEntry() {
     final objects = ClipboardCache.configurator.get('cache');
-    final texts = objects.where((e) => e['type'] == 'ClipboardEntityType.text');
-    if (texts.isNotEmpty) {
-      return texts.first['data'];
+    if (objects != null && objects.isNotEmpty) {
+      final texts =
+          objects.where((e) => e['type'] == 'ClipboardEntityType.text');
+      if (texts.isNotEmpty) {
+        return texts.first['data'];
+      }
     }
     return "";
   }
