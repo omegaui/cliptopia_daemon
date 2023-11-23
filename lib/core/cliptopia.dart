@@ -19,7 +19,19 @@ class ClipboardCache {
 
   static final configurator = ClipboardConfigurator();
 
-  static bool findTextInCache(data) {
+  static final exclusionConfig =
+      JsonConfigurator(configName: 'exclusion-config.json');
+
+  static bool isAddable(data) {
+    dynamic exclusions = exclusionConfig.get('exclusions');
+    if (exclusions != null && exclusions.isNotEmpty) {
+      for (final exclusion in exclusions) {
+        if (exclusion['pattern'].allMatches(data).isNotEmpty) {
+          return false;
+        }
+      }
+    }
+
     dynamic objects = configurator.get('cache');
     if (objects != null && objects.isNotEmpty) {
       dynamic texts = objects
@@ -41,7 +53,7 @@ class ClipboardCache {
   }
 
   static void addText(dynamic data) {
-    if (findTextInCache(data)) {
+    if (isAddable(data)) {
       return;
     }
 
