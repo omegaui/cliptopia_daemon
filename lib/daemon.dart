@@ -48,21 +48,26 @@ class Daemon {
   void _launch() async {
     prettyLog(value: 'Daemon Started ...');
     while (Lock.isLocked()) {
+      if (IncognitoLock.isLocked()) {
+        continue;
+      }
       await Future.delayed(Duration(seconds: 1));
       manager.read();
     }
     prettyLog(value: 'Daemon Stopped!');
   }
 
-  Future<void> stopDaemon() async {
-    if (!Lock.isLocked()) {
+  Future<void> stopDaemon({silent = false}) async {
+    if (!Lock.isLocked() && !silent) {
       status();
       return;
     }
     prettyLog(value: 'Removing Lock File ...');
     Lock.remove();
     await Future.delayed(Duration(milliseconds: 500));
-    status();
+    if (!silent) {
+      status();
+    }
   }
 
   void status() {
@@ -74,8 +79,16 @@ class Daemon {
   }
 
   void restartDaemon() {
-    stopDaemon();
+    stopDaemon(silent: true);
     startDaemon();
+  }
+
+  void incognito(bool enabled) {
+    if (enabled) {
+      IncognitoLock.apply();
+    } else {
+      IncognitoLock.remove();
+    }
   }
 
   void resetCache({stop = true}) async {
@@ -96,6 +109,10 @@ class Daemon {
     } else {
       stdout.writeln("Nothing in cache to clear.");
     }
+  }
+
+  void cacheSize() {
+    ClipboardCache.displayCacheSize();
   }
 
   void version() async {

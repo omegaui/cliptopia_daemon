@@ -150,6 +150,13 @@ class ClipboardCache {
     }
   }
 
+  static void displayCacheSize() {
+    String unit = "MB";
+    int base = _getBase(unit);
+    int currentSize = _getCacheDirSizeInBytes();
+    stdout.writeln("Cache Size: ${currentSize / base} $unit");
+  }
+
   static void clearCache(final int exceededSize) {
     int deletedCacheSize = 0;
     int index = 0;

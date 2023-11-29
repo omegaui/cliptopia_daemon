@@ -1,4 +1,3 @@
-
 class ArgumentHandler {
   ArgumentHandler._();
 
@@ -7,8 +6,11 @@ class ArgumentHandler {
     '--stop',
     '--status',
     '--restart',
+    '--enable-incognito-mode',
+    '--disable-incognito-mode',
     '--debug',
     '--reset-cache',
+    '--cache-size',
     '--version',
     '--help',
   ];
@@ -43,6 +45,18 @@ class ArgumentHandler {
     return _arguments.contains('--reset-cache');
   }
 
+  static bool shouldShowCacheSize() {
+    return _arguments.contains('--cache-size');
+  }
+
+  static bool shouldEnableIncognitoMode() {
+    return _arguments.contains('--enable-incognito-mode');
+  }
+
+  static bool shouldDisableIncognitoMode() {
+    return _arguments.contains('--disable-incognito-mode');
+  }
+
   static bool shouldShowVersion() {
     return _arguments.contains('--version');
   }
@@ -50,10 +64,10 @@ class ArgumentHandler {
   static bool isDebugMode() {
     return _arguments.contains('--debug');
   }
-  
+
   static bool validate() {
-    for(final arg in _arguments){
-      if(!_args.contains(arg)){
+    for (final arg in _arguments) {
+      if (!_args.contains(arg)) {
         return false;
       }
     }
@@ -61,8 +75,8 @@ class ArgumentHandler {
   }
 
   static Iterable<String> getUnknownOptions() sync* {
-    for(final arg in _arguments){
-      if(!_args.contains(arg)){
+    for (final arg in _arguments) {
+      if (!_args.contains(arg)) {
         yield arg;
       }
     }

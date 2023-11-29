@@ -58,3 +58,26 @@ class StateLock {
     return lockFile.existsSync();
   }
 }
+
+class IncognitoLock {
+  IncognitoLock._();
+
+  static File lockFile =
+      File(combineHomePath(['.config', 'cliptopia', '.incognito-mode']));
+
+  static void apply() {
+    if (!isLocked()) {
+      lockFile.createSync();
+    }
+  }
+
+  static void remove() {
+    if (isLocked()) {
+      lockFile.deleteSync();
+    }
+  }
+
+  static bool isLocked() {
+    return lockFile.existsSync();
+  }
+}
