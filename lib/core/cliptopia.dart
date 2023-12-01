@@ -22,6 +22,8 @@ class ClipboardCache {
   static final exclusionConfig =
       JsonConfigurator(configName: 'exclusion-config.json');
 
+  static dynamic _lastPathData;
+
   static bool isAddable(data) {
     dynamic exclusions = exclusionConfig.get('exclusions');
     if (exclusions != null && exclusions.isNotEmpty) {
@@ -45,15 +47,15 @@ class ClipboardCache {
             textObject['time'] = _now.toString();
             configurator.save();
           }
-          return true;
+          return false;
         }
       }
     }
-    return false;
+    return true;
   }
 
-  static void addText(dynamic data) {
-    if (isAddable(data)) {
+  static void addText(dynamic data, {recursive = false}) {
+    if (!isAddable(data)) {
       return;
     }
 
@@ -67,15 +69,25 @@ class ClipboardCache {
     if (FileSystemEntity.isDirectorySync(path) ||
         FileSystemEntity.isFileSync(path)) {
       type = ClipboardEntityType.path;
+      if (!recursive) {
+        if (_lastPathData == path) {
+          return;
+        }
+        _lastPathData = path;
+      }
     } else if (path.contains('\n')) {
       List<String> lines = path.split('\n');
       List<String> paths = lines.where((line) {
         return FileSystemEntity.isDirectorySync(line) ||
             FileSystemEntity.isFileSync(line);
       }).toList();
+      if (_lastPathData == path) {
+        return;
+      }
       if (paths.length == lines.length) {
+        _lastPathData = path;
         for (final path in lines) {
-          addText(path);
+          addText(path, recursive: true);
         }
         return;
       }
