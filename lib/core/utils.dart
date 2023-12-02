@@ -108,3 +108,37 @@ void copy(data) {
   );
   prettyLog(value: "Copied to clipboard ... ");
 }
+
+bool doesPathExists(String path) {
+  return File(path).existsSync() || Directory(path).existsSync();
+}
+
+extension StringURIUtils on String {
+  bool isFileURI() {
+    return doesPathExists(this);
+  }
+
+  bool isMultiFileURI() {
+    if (!contains('\n')) {
+      return false;
+    }
+    return doesPathExists(substring(0, indexOf('\n')));
+  }
+
+  List<String> getPaths() {
+    List<String> paths = [];
+    if (isMultiFileURI()) {
+      List<String> px = split('\n');
+      for (String p in px) {
+        if (p.trim() != '') {
+          if (doesPathExists(p)) {
+            paths.add(p);
+          }
+        }
+      }
+    } else if (isFileURI()) {
+      paths.add(this);
+    }
+    return paths;
+  }
+}

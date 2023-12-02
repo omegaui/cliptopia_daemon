@@ -24,16 +24,26 @@ class ClipboardCache {
 
   static dynamic _lastPathData;
 
-  static bool isAddable(data) {
+  static bool findTextInCache(data) {
     dynamic exclusions = exclusionConfig.get('exclusions');
     if (exclusions != null && exclusions.isNotEmpty) {
       for (final exclusion in exclusions) {
-        if (exclusion['pattern'].allMatches(data).isNotEmpty) {
-          return false;
+        try {
+          if (exclusion['pattern'].allMatches(data).isNotEmpty) {
+            return true; // #ContentProtection
+          }
+        } catch (e) {
+          prettyLog(
+              value: "Error checking ${exclusion['name']} against $data",
+              type: DebugType.error);
+          rethrow;
         }
       }
     }
+    return updateRef(data);
+  }
 
+  static bool updateRef(data) {
     dynamic objects = configurator.get('cache');
     if (objects != null && objects.isNotEmpty) {
       dynamic texts = objects
@@ -47,50 +57,37 @@ class ClipboardCache {
             textObject['time'] = _now.toString();
             configurator.save();
           }
-          return false;
+          return true;
         }
       }
     }
-    return true;
+    return false;
   }
 
-  static void addText(dynamic data, {recursive = false}) {
-    if (!isAddable(data)) {
+  static void addText(dynamic data, {bool isPath = false}) {
+    if (findTextInCache(data)) {
       return;
     }
 
-    var type = ClipboardEntityType.text;
+    var type = isPath ? ClipboardEntityType.path : ClipboardEntityType.text;
 
-    String path = data.toString();
-    if (path.startsWith('file://')) {
-      path = path.substring(7);
+    // Checking if data is a list of URIs
+    final paths = data.toString().getPaths();
+    if (!isPath && _lastPathData != data) {
+      if (paths.isNotEmpty) {
+        for (final path in paths) {
+          addText(path, isPath: true);
+        }
+        _lastPathData = data;
+        return;
+      }
     }
 
-    if (FileSystemEntity.isDirectorySync(path) ||
-        FileSystemEntity.isFileSync(path)) {
-      type = ClipboardEntityType.path;
-      if (!recursive) {
-        if (_lastPathData == path) {
-          return;
-        }
-        _lastPathData = path;
+    if (_lastPathData == data) {
+      for (final path in paths) {
+        updateRef(path);
       }
-    } else if (path.contains('\n')) {
-      List<String> lines = path.split('\n');
-      List<String> paths = lines.where((line) {
-        return FileSystemEntity.isDirectorySync(line) ||
-            FileSystemEntity.isFileSync(line);
-      }).toList();
-      if (_lastPathData == path) {
-        return;
-      }
-      if (paths.length == lines.length) {
-        _lastPathData = path;
-        for (final path in lines) {
-          addText(path, recursive: true);
-        }
-        return;
-      }
+      return;
     }
 
     prettyLog(
@@ -151,6 +148,9 @@ class ClipboardCache {
       int limitInBytes = size * base;
       int currentSize = _getCacheDirSizeInBytes();
       prettyLog(value: "Cache Size: ${currentSize / base} $unit");
+      prettyLog(
+          value:
+              "Cache Length: ${(configurator.get('cache') ?? []).length} Items");
       if (currentSize > limitInBytes) {
         prettyLog(
           value:
