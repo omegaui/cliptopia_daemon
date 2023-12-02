@@ -186,7 +186,7 @@ class ClipboardCache {
           prettyLog(value: ">> Deleting Cached Image ...");
         }
       }
-      deletedCacheSize += (objectSize - extra);
+      deletedCacheSize += (objectSize + extra);
       configurator.remove('cache', object);
     }
     prettyLog(value: "Cleared $exceededSize bytes of storage ...");
@@ -357,11 +357,20 @@ class ClipboardConfigurator extends JsonConfigurator {
     if (objects != null) {
       dynamic removables = [];
       for (final object in objects) {
-        if (object['type'] != 'ClipboardEntityType.text') {
+        // image no longer exists
+        if (object['type'] == 'ClipboardEntityType.image') {
           if (!File(object['data']).existsSync()) {
             removables.add(object);
           }
         }
+        // file/folder no longer exists
+        if (object['type'] == 'ClipboardEntityType.path') {
+          if (!File(object['data']).existsSync() ||
+              !Directory(object['data']).existsSync()) {
+            removables.add(object);
+          }
+        }
+        // deletion requested by user
         if (removableObjects.contains(object['id'])) {
           prettyLog(value: "Marking Entity for Removal :${object['id']}");
           removables.add(object);
@@ -369,7 +378,13 @@ class ClipboardConfigurator extends JsonConfigurator {
       }
       for (final object in removables) {
         remove('cache', object);
-        removablesStorage.remove('cache', object['id']);
+        removablesStorage.remove('removables', object['id']);
+        if (object['type'] == 'ClipboardEntityType.image') {
+          File imageFile = File(object['data']);
+          if (imageFile.existsSync()) {
+            imageFile.deleteSync();
+          }
+        }
       }
     }
   }
