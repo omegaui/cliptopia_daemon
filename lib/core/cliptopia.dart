@@ -365,9 +365,14 @@ class ClipboardConfigurator extends JsonConfigurator {
         }
         // file/folder no longer exists
         if (object['type'] == 'ClipboardEntityType.path') {
-          if (!File(object['data']).existsSync() ||
-              !Directory(object['data']).existsSync()) {
-            removables.add(object);
+          if (FileSystemEntity.isFileSync(object['data'])) {
+            if (!File(object['data']).existsSync()) {
+              removables.add(object);
+            }
+          } else if (FileSystemEntity.isDirectorySync(object['data'])) {
+            if (!Directory(object['data']).existsSync()) {
+              removables.add(object);
+            }
           }
         }
         // deletion requested by user
