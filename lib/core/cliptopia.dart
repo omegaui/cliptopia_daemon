@@ -337,6 +337,15 @@ class ClipboardConfigurator extends JsonConfigurator {
     ),
   );
 
+  final commentsStorage = JsonConfigurator(
+    configName: combinePath(
+      [
+        'cache',
+        'comments.json',
+      ],
+    ),
+  );
+
   ClipboardConfigurator()
       : super(
           configName: combinePath(
@@ -351,8 +360,10 @@ class ClipboardConfigurator extends JsonConfigurator {
     dynamic objects = get('cache');
 
     removablesStorage.reload();
+    commentsStorage.reload();
 
     dynamic removableObjects = removablesStorage.get('removables') ?? [];
+    dynamic comments = commentsStorage.get('comments') ?? [];
 
     if (objects != null) {
       dynamic removables = [];
@@ -389,6 +400,21 @@ class ClipboardConfigurator extends JsonConfigurator {
           if (imageFile.existsSync()) {
             imageFile.deleteSync();
           }
+        }
+
+        // Removing any corresponding comment on object
+        List<dynamic> removableComments = [];
+        for (final comment in comments) {
+          if (comment['refID'] == object['id']) {
+            removableComments.add(comment);
+            // an object can have only one comment object
+            // a comment object can hold more than one comment
+            // using line separator
+            break;
+          }
+        }
+        for (final removableComment in removableComments) {
+          commentsStorage.remove('comments', removableComment);
         }
       }
     }
