@@ -341,7 +341,7 @@ class ClipboardConfigurator extends JsonConfigurator {
     configName: combinePath(
       [
         'cache',
-        'comments.json',
+        'entity-infos.json',
       ],
     ),
   );
@@ -363,7 +363,7 @@ class ClipboardConfigurator extends JsonConfigurator {
     commentsStorage.reload();
 
     dynamic removableObjects = removablesStorage.get('removables') ?? [];
-    dynamic comments = commentsStorage.get('comments') ?? [];
+    dynamic comments = commentsStorage.get('infos') ?? [];
 
     if (objects != null) {
       dynamic removables = [];
