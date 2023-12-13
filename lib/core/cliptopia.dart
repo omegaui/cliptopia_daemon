@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:cliptopia_daemon/core/json_configurator.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
+import 'package:cliptopia_daemon/core/shell_scripts.dart';
 import 'package:cliptopia_daemon/core/utils.dart';
 import 'package:cliptopia_daemon/daemon.dart';
 
@@ -223,7 +224,6 @@ class DaemonConfig extends JsonConfigurator {
   }
 
   static bool shouldLimitCache() {
-    _config.reload();
     return _config.get('limit-cache') ?? false;
   }
 
@@ -238,16 +238,44 @@ class DaemonConfig extends JsonConfigurator {
   static String getCacheSizeUnit() {
     return _config.get('unit') ?? "KB";
   }
+
+  static bool shouldForceXClip() {
+    _config.reload();
+    return _config.get('force-xclip') ?? false;
+  }
 }
 
 class ClipboardManager {
+  final pasteBin = combineHomePath(
+      ['.config', 'cliptopia', 'cache', '.paste-bin-for-wayland']);
+
+  bool waylandSession = false;
+  bool wasWaylandSession = false;
+
   ClipboardManager.withStorage() {
     initStorage();
+    _identifySession();
+  }
+
+  void _identifySession() {
+    final output = Platform.environment['WAYLAND_DISPLAY'];
+    if (output != null && output.contains('wayland')) {
+      waylandSession = true;
+    }
+    if (waylandSession) {
+      wasWaylandSession = true;
+      ShellScripts.ensure();
+      prettyLog(value: "Running in a wayland session ...");
+    } else {
+      prettyLog(value: "This is not a wayland session ...");
+    }
   }
 
   static void initStorage() {
     mkdir(combineHomePath(['.config', 'cliptopia']),
         "Creating Cliptopia Storage Route ...");
+    mkdir(combineHomePath(['.config', 'cliptopia', 'scripts']),
+        "Creating Cliptopia Scripts Storage ...");
     mkdir(combineHomePath(['.config', 'cliptopia', 'cache']),
         "Creating Cliptopia Cache Storage ...");
     mkdir(combineHomePath(['.config', 'cliptopia', 'cache', 'images']),
@@ -256,6 +284,9 @@ class ClipboardManager {
   }
 
   void read() {
+    // check if the user has forced X11 mode
+    watchSessionSwitch();
+    // Read clipboard ...
     _tryReadText();
     _tryReadImage();
     // removes corrupted or objects marked for removal
@@ -264,14 +295,18 @@ class ClipboardManager {
   }
 
   void _tryReadText() {
-    dynamic data = _tryExecuteXClip(target: Targets.text);
+    dynamic data = waylandSession
+        ? _tryExecuteWLPaste(target: Targets.text)
+        : _tryExecuteXClip(target: Targets.text);
     if (data != null && data.trim().isNotEmpty) {
       ClipboardCache.addText(data);
     }
   }
 
   void _tryReadImage() {
-    ClipboardImageObject? data = _tryExecuteXClip(target: Targets.image);
+    ClipboardImageObject? data = waylandSession
+        ? _tryExecuteWLPaste(target: Targets.image)
+        : _tryExecuteXClip(target: Targets.image);
     if (data != null) {
       ClipboardCache.addImage(data);
     }
@@ -314,6 +349,61 @@ class ClipboardManager {
     }
   }
 
+  dynamic _tryExecuteWLPaste({required String target}) {
+    final typeIdentificationProcess = Process.runSync(
+      'wl-paste',
+      ['--list-types'],
+      runInShell: true,
+    );
+    var stdout = typeIdentificationProcess.stdout.toString();
+    stdout = stdout.split('\n').join();
+    if (stdout.isEmpty) {
+      return null;
+    } else {
+      String? availableTarget;
+      if (stdout.contains(Targets.text)) {
+        // either its a path or text
+        // no matter what it is, Cliptopia will automatically handle
+        availableTarget = Targets.text;
+      } else if (stdout.contains(Targets.image)) {
+        // this means the currently available target an image
+        availableTarget = Targets.image;
+      } else {
+        // We don't support other types right now
+        return null;
+      }
+
+      if (availableTarget == target) {
+        // reading and getting data
+        String wlPasteType =
+            target == Targets.text ? 'text/plain' : 'image/png';
+        final writeProcess = Process.runSync(
+          ShellScripts.wlPasteExecutorPath,
+          [wlPasteType, pasteBin],
+          runInShell: true,
+        );
+        if (writeProcess.exitCode == 0) {
+          dynamic path;
+          if (target == Targets.image) {
+            path = getUniqueImagePath();
+          }
+          final data = File(pasteBin).readAsBytesSync();
+          if (path != null) {
+            return ClipboardImageObject(data, path);
+          }
+          return utf8.decode(data);
+        } else {
+          // it failed somehow ...
+          // may be logs can tell why?
+          return null;
+        }
+      } else {
+        // requested target is not currently available
+        return null;
+      }
+    }
+  }
+
   String findMostRecentTextEntry() {
     final objects = ClipboardCache.configurator.get('cache');
     if (objects != null && objects.isNotEmpty) {
@@ -324,6 +414,23 @@ class ClipboardManager {
       }
     }
     return "";
+  }
+
+  void watchSessionSwitch() {
+    if (DaemonConfig.shouldForceXClip()) {
+      if (waylandSession) {
+        waylandSession = false;
+        prettyLog(
+          value: "Using xclip in a wayland session ...",
+          type: DebugType.warning,
+        );
+      }
+    } else if (wasWaylandSession && !waylandSession) {
+      waylandSession = true;
+      prettyLog(
+        value: "Switching back to wayland session ...",
+      );
+    }
   }
 }
 
