@@ -8,7 +8,7 @@
 
 Watches the system clipboard to provide clipboard caching.
 
-**Maintained Cache is located at: /home/omegaui/.config/cliptopia/cache**
+**Maintained Cache is located at: ~/.config/cliptopia/cache**
 
 ```shell
 Usage: cliptopia-daemon [OPTIONS]
