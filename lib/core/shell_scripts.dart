@@ -15,14 +15,37 @@ class ShellScripts {
 wl-paste --type \$1 > \$2
 """;
 
+  static final cliptopiaCopyExecutorPath = combineHomePath(
+      ['.config', 'cliptopia', 'scripts', 'wl-paste-executor.sh']);
+
+  static const _cliptopiaCopyExecutorSource = """
+#!/bin/bash
+
+if [ -z "\$1" ]; then
+    echo "Usage: cliptopia-copy.sh <TARGET>"
+    exit 1
+fi
+
+xclip -selection clipboard -t "\$1" < /tmp/.cliptopia-temp-text-data &> /dev/null
+""";
+
   static void ensure() {
-    final script = File(wlPasteExecutorPath);
-    if (!script.existsSync()) {
+    final wlPasteScript = File(wlPasteExecutorPath);
+    if (!wlPasteScript.existsSync()) {
       prettyLog(value: "Writing wl paste executor script ...");
-      script.writeAsStringSync(_wlPasteExecutorSource, flush: true);
+      wlPasteScript.writeAsStringSync(_wlPasteExecutorSource, flush: true);
       Process.runSync(
         'chmod',
         ['+x', wlPasteExecutorPath],
+      );
+    }
+    final copyScript = File(cliptopiaCopyExecutorPath);
+    if (!copyScript.existsSync()) {
+      prettyLog(value: "Writing Cliptopia copy executor script ...");
+      copyScript.writeAsStringSync(_cliptopiaCopyExecutorSource, flush: true);
+      Process.runSync(
+        'chmod',
+        ['+x', cliptopiaCopyExecutorPath],
       );
     }
   }

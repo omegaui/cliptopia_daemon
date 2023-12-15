@@ -17,13 +17,21 @@ class Daemon {
   late final ClipboardManager manager;
 
   void startDaemon() {
-    if (Lock.isLocked()) {
-      prettyLog(value: 'Daemon is already alive ...');
-      if (ArgumentHandler.isDebugMode()) {
-        restartDaemon();
-      }
+    if (isAnotherInstanceAlive()) {
+      stdout.writeln('Another Instance of Daemon is already alive!');
+      stdout.writeln('Please run the following to stop it');
+      stdout.writeln('> cliptopia-daemon --stop');
+      stdout.writeln(
+          'Or you can restart the daemon by running the following command');
+      stdout.writeln('> cliptopia-daemon --restart');
       return;
     }
+    if (Lock.isLocked()) {
+      prettyLog(value: 'Lock file already exists ...');
+      restartDaemon();
+      return;
+    }
+    prettyLog(value: 'Applying Runtime lock ...');
     Lock.apply();
     manager = ClipboardManager.withStorage();
     if (!DaemonConfig.shouldKeepHistory()) {

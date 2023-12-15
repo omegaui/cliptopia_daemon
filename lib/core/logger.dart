@@ -9,7 +9,7 @@ prettyLog({
   required dynamic value,
   DebugType type = DebugType.info,
 }) {
-  if(!ArgumentHandler.isDebugMode()){
+  if (!ArgumentHandler.isDebugMode()) {
     return;
   }
   switch (type) {
@@ -22,7 +22,7 @@ prettyLog({
       break;
     case DebugType.warning:
       stdout.writeln(
-          '\x1B[36m${"⚠️ Warning ${tag != null ? "$tag: " : ""}$value"}\x1B[0m');
+          '\x1B[36m${"⚠️ > Warning ${tag != null ? "$tag: " : ""}$value"}\x1B[0m');
       break;
     case DebugType.error:
       stdout.writeln(

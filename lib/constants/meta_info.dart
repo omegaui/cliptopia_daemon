@@ -1,3 +1,3 @@
 class MetaInfo {
-  static String get version => "v1.0.0+2";
+  static String get version => "v0.0.2";
 }

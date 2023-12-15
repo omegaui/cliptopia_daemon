@@ -34,6 +34,35 @@ String _pgrep(pattern) {
   return Process.runSync('pgrep', ['-x', pattern]).stdout;
 }
 
+int _countPIDs(String output) {
+  int count = 0;
+  if (output.trim().isNotEmpty) {
+    final ids = [];
+    if (output.contains('\n')) {
+      final lines = output.split('\n');
+      for (final line in lines) {
+        int? id = int.tryParse(line.trim());
+        if (id != null) {
+          ids.add(id);
+        }
+      }
+    } else {
+      int? id = int.tryParse(output.trim());
+      if (id != null) {
+        ids.add(id);
+      }
+    }
+    count = ids.length;
+  }
+  return count;
+}
+
+bool isAnotherInstanceAlive() {
+  final daemonProcess =
+      Process.runSync('pgrep', ['-f', 'cliptopia-daemon']).stdout;
+  return _countPIDs(daemonProcess) > 1;
+}
+
 bool isDaemonAlive() {
   final daemonProcess = _pgrep('cliptopia-daemon');
   final devProcess = _pgrep('dart:cliptopia_');
@@ -60,37 +89,6 @@ bool listEquals<E>(List<E> list1, List<E> list2) {
 
   for (var i = 0; i < list1.length; i += 1) {
     if (list1[i] != list2[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-/// Compares two [Uint8List]s by comparing 8 bytes at a time.
-bool memEquals(Uint8List bytes1, Uint8List bytes2) {
-  if (identical(bytes1, bytes2)) {
-    return true;
-  }
-
-  if (bytes1.lengthInBytes != bytes2.lengthInBytes) {
-    return false;
-  }
-
-  // Treat the original byte lists as lists of 8-byte words.
-  var numWords = bytes1.lengthInBytes ~/ 8;
-  var words1 = bytes1.buffer.asUint64List(0, numWords);
-  var words2 = bytes2.buffer.asUint64List(0, numWords);
-
-  for (var i = 0; i < words1.length; i += 1) {
-    if (words1[i] != words2[i]) {
-      return false;
-    }
-  }
-
-  // Compare any remaining bytes.
-  for (var i = words1.lengthInBytes; i < bytes1.lengthInBytes; i += 1) {
-    if (bytes1[i] != bytes2[i]) {
       return false;
     }
   }

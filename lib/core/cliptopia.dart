@@ -6,9 +6,8 @@ import 'package:cliptopia_daemon/core/json_configurator.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
 import 'package:cliptopia_daemon/core/shell_scripts.dart';
 import 'package:cliptopia_daemon/core/utils.dart';
-import 'package:cliptopia_daemon/daemon.dart';
 
-final _now = DateTime.now();
+DateTime get _now => DateTime.now();
 
 class ClipboardCache {
   static final imageCacheDir = Directory(combineHomePath([
@@ -95,8 +94,10 @@ class ClipboardCache {
         value:
             "Adding a New ${type == ClipboardEntityType.text ? "Text" : "Path"} Entry ...");
 
-    configurator.add(
-        'cache', ClipboardEntity(data, DateTime.now(), type).toMap());
+    int sizeInBytes = utf8.encode(data).length;
+
+    configurator.add('cache',
+        ClipboardEntity(data, DateTime.now(), type, sizeInBytes).toMap());
   }
 
   static bool findImageInCache(ClipboardImageObject object) {
@@ -137,7 +138,8 @@ class ClipboardCache {
 
     configurator.add(
         'cache',
-        ClipboardEntity(object.path, DateTime.now(), ClipboardEntityType.image)
+        ClipboardEntity(object.path, DateTime.now(), ClipboardEntityType.image,
+                File(object.path).statSync().size)
             .toMap());
   }
 
@@ -147,7 +149,7 @@ class ClipboardCache {
       String unit = DaemonConfig.getCacheSizeUnit();
       int base = _getBase(unit);
       int limitInBytes = size * base;
-      int currentSize = _getCacheDirSizeInBytes();
+      int currentSize = _getTotalStoredCacheSize();
       prettyLog(value: "Cache Size: ${currentSize / base} $unit");
       prettyLog(
           value:
@@ -164,9 +166,16 @@ class ClipboardCache {
   }
 
   static void displayCacheSize() {
-    String unit = "MB";
+    int currentSize = _getTotalStoredCacheSize();
+    String? unit;
+    if (currentSize <= 999999) {
+      unit = "KB";
+    } else if (currentSize <= 99999999) {
+      unit = "MB";
+    } else {
+      unit = "KB";
+    }
     int base = _getBase(unit);
-    int currentSize = _getCacheDirSizeInBytes();
     stdout.writeln("Cache Size: ${currentSize / base} $unit");
   }
 
@@ -205,10 +214,13 @@ class ClipboardCache {
     return base;
   }
 
-  static int _getCacheDirSizeInBytes() {
-    var files = Daemon.cacheDir.listSync(recursive: true).toList();
-    var dirSize = files.fold(0, (int sum, file) => sum + file.statSync().size);
-    return dirSize;
+  static int _getTotalStoredCacheSize() {
+    int size = 0;
+    final objects = configurator.get('cache');
+    for (final entity in objects) {
+      size += int.parse(entity['size'].toString());
+    }
+    return size;
   }
 }
 
@@ -539,8 +551,9 @@ class ClipboardEntity {
   DateTime time;
   ClipboardEntityType type;
   final String id;
+  final int size;
 
-  ClipboardEntity(this.data, this.time, this.type) : id = uuid.v1();
+  ClipboardEntity(this.data, this.time, this.type, this.size) : id = uuid.v1();
 
   Map<String, dynamic> toMap() {
     return {
@@ -548,6 +561,7 @@ class ClipboardEntity {
       'data': data,
       'time': time.toString(),
       'type': type.toString(),
+      'size': size,
     };
   }
 }
