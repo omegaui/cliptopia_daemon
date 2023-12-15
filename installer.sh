@@ -1,4 +1,5 @@
 #!/bin/bash
+flutter pub get
 cliptopia-daemon --stop
 echo ">> Building ..."
 dart compile exe --target-os linux --output cliptopia-daemon bin/cliptopia_daemon.dart
