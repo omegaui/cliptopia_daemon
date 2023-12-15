@@ -276,7 +276,6 @@ class ClipboardManager {
     }
     if (waylandSession) {
       wasWaylandSession = true;
-      ShellScripts.ensure();
       prettyLog(value: "Running in a wayland session ...");
     } else {
       prettyLog(value: "This is not a wayland session ...");

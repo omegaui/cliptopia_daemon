@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cliptopia_daemon/core/argument_handler.dart';
+import 'package:cliptopia_daemon/core/shell_scripts.dart';
 import 'package:cliptopia_daemon/daemon.dart';
 
 void main(List<String> arguments) async {
@@ -23,6 +24,7 @@ void main(List<String> arguments) async {
   final daemon = Daemon();
 
   if (ArgumentHandler.shouldStart()) {
+    ShellScripts.ensure();
     daemon.startDaemon();
   } else if (ArgumentHandler.shouldStop()) {
     daemon.stopDaemon();
