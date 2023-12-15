@@ -15,8 +15,8 @@ class ShellScripts {
 wl-paste --type \$1 > \$2
 """;
 
-  static final cliptopiaCopyExecutorPath = combineHomePath(
-      ['.config', 'cliptopia', 'scripts', 'wl-paste-executor.sh']);
+  static final cliptopiaCopyExecutorPath =
+      combineHomePath(['.config', 'cliptopia', 'scripts', 'cliptopia-copy.sh']);
 
   static const _cliptopiaCopyExecutorSource = """
 #!/bin/bash
