@@ -4,6 +4,7 @@ import 'package:cliptopia_daemon/constants/meta_info.dart';
 import 'package:cliptopia_daemon/core/cliptopia.dart';
 import 'package:cliptopia_daemon/core/lock.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
+import 'package:cliptopia_daemon/core/state.dart';
 import 'package:cliptopia_daemon/core/utils.dart';
 
 class Daemon {
@@ -13,7 +14,7 @@ class Daemon {
     'cache',
   ]));
 
-  late final ClipboardManager manager;
+  late ClipboardManager manager;
 
   void startDaemon({restart = false}) {
     if (!restart && isAnotherInstanceAlive()) {
@@ -54,12 +55,31 @@ class Daemon {
 
   void _launch() async {
     prettyLog(value: 'Daemon Started ...');
-    while (Lock.isLocked()) {
+    int seconds = 1;
+    bool locked = true;
+    bool responsive = true;
+    State.reset();
+    while ((locked = Lock.isLocked()) && (responsive = State.isResponsive())) {
       if (IncognitoLock.isLocked()) {
         continue;
       }
       await Future.delayed(Duration(seconds: 1));
+      seconds++;
       manager.read();
+      // Although, the `cliptopia-daemon --status` command
+      // returns that the Daemon is Alive, but it could go idle and unresponsive
+      // an active daemon will always have the latest DateTime written at `/tmp/.cliptopia-daemon-state`.
+      // This is done at every 1 min
+      if (seconds == 60) {
+        State.update();
+        seconds = 1;
+      }
+    }
+    prettyLog(value: "isResponsive: $responsive, wasLocked: $locked");
+    // May be the daemon is exiting because unresponsiveness was detected
+    if (locked && !responsive) {
+      Lock.remove();
+      restartDaemon();
     }
     prettyLog(value: 'Daemon Stopped!');
   }

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:cliptopia_daemon/core/logger.dart';
 import 'package:uuid/uuid.dart';
@@ -139,4 +138,12 @@ extension StringURIUtils on String {
     }
     return paths;
   }
+}
+
+void restartSelf() {
+  Process.runSync(
+    '/usr/bin/cliptopia-daemon',
+    ['--restart'],
+    runInShell: true,
+  );
 }
