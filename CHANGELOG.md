@@ -1,4 +1,9 @@
 
+# 0.0.3
+- Brings Daemon State Management
+- Fixed Unresponsiveness of a long-running daemon
+- Optimized Start up
+
 # 0.0.2 - version bumped to 0.0.2
 > ### Breaking Changes
 > This update will clear the clipboard cache as the new model
