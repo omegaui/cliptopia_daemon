@@ -15,7 +15,9 @@ class State {
   }
 
   static void reset() {
-    _config.deleteSync();
+    if (_config.existsSync()) {
+      _config.deleteSync();
+    }
   }
 
   static bool isResponsive() {
