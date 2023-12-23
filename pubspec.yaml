@@ -1,6 +1,6 @@
 name: cliptopia_daemon
 description: Cliptopia's Clipboard Watcher Daemon for Linux
-version: 1.0.0+2
+version: 0.0.3
 
 environment:
   sdk: ^3.1.4
