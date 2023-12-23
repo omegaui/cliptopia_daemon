@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:cliptopia_daemon/constants/meta_info.dart';
-import 'package:cliptopia_daemon/core/argument_handler.dart';
 import 'package:cliptopia_daemon/core/cliptopia.dart';
 import 'package:cliptopia_daemon/core/lock.dart';
 import 'package:cliptopia_daemon/core/logger.dart';
@@ -16,8 +15,8 @@ class Daemon {
 
   late final ClipboardManager manager;
 
-  void startDaemon() {
-    if (isAnotherInstanceAlive()) {
+  void startDaemon({restart = false}) {
+    if (!restart && isAnotherInstanceAlive()) {
       stdout.writeln('Another Instance of Daemon is already alive!');
       stdout.writeln('Please run the following to stop it');
       stdout.writeln('> cliptopia-daemon --stop');
@@ -26,7 +25,7 @@ class Daemon {
       stdout.writeln('> cliptopia-daemon --restart');
       return;
     }
-    if (Lock.isLocked()) {
+    if (!restart && Lock.isLocked()) {
       prettyLog(value: 'Lock file already exists ...');
       restartDaemon();
       return;
@@ -86,9 +85,11 @@ class Daemon {
     }
   }
 
-  void restartDaemon() {
+  void restartDaemon() async {
     stopDaemon(silent: true);
-    startDaemon();
+    stdout.writeln('Waiting for Previous Daemon to exit ...');
+    await Future.delayed(Duration(seconds: 2));
+    startDaemon(restart: true);
   }
 
   void incognito(bool enabled) {

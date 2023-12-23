@@ -432,7 +432,8 @@ class ClipboardManager {
       if (waylandSession) {
         waylandSession = false;
         prettyLog(
-          value: "Using xclip in a wayland session ...",
+          value:
+              "Using xclip in a wayland session, make sure this is a XWayland session ...",
           type: DebugType.warning,
         );
       }
