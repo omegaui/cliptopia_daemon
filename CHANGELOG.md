@@ -1,4 +1,7 @@
 
+# 0.0.4
+- forces xclip on wayland sessions by default
+
 # 0.0.3
 - Brings Daemon State Management
 - Fixed Unresponsiveness of a long-running daemon

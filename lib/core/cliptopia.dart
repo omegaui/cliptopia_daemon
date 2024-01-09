@@ -253,7 +253,7 @@ class DaemonConfig extends JsonConfigurator {
 
   static bool shouldForceXClip() {
     _config.reload();
-    return _config.get('force-xclip') ?? false;
+    return _config.get('force-xclip') ?? true;
   }
 }
 
